@@ -1,0 +1,1533 @@
+Program.Sub.ScreenSU.Start
+Gui.frmWO..Create
+Gui.frmWO..Caption("Hose by Foot Auto Work Order Gen Dashboard")
+Gui.frmWO..Size(16350,12825)
+Gui.frmWO..MinX(16350)
+Gui.frmWO..MinY(12825)
+Gui.frmWO..Position(0,0)
+Gui.frmWO..BackColor(-2147483633)
+Gui.frmWO..MousePointer(0)
+Gui.frmWO..Event(UnLoad,frmWO_UnLoad)
+Gui.frmWO..Event(Resize,frmWO_Resize)
+Gui.frmWO.picGSSLogo.Create(PictureBox)
+Gui.frmWO.picGSSLogo.Size(4125,960)
+Gui.frmWO.picGSSLogo.Position(6090,45)
+Gui.frmWO.picGSSLogo.Anchor(1)
+Gui.frmWO.lblStatus.Create(Label,"Loading WO Data....",False,2895,255,0,75,135,True,0,"Arial",8,-2147483633,0)
+Gui.frmWO.progBarStatus.Create(ProgressBar)
+Gui.frmWO.progBarStatus.Visible(False)
+Gui.frmWO.progBarStatus.Size(2895,255)
+Gui.frmWO.progBarStatus.Position(75,345)
+Gui.frmWO.GsGCDemand.Create(GsGridControl)
+Gui.frmWO.GsGCDemand.Size(8040,3765)
+Gui.frmWO.GsGCDemand.Position(30,8715)
+Gui.frmWO.GsGCDemand.Event(RowCellClick,Hyperlinks)
+Gui.frmWO.lblSupply.Create(Label,"Supply",True,1935,255,0,8130,8475,True,0,"Arial",8,-2147483633,0)
+Gui.frmWO.lblSupply.FontStyle(True,False,False,False,False)
+Gui.frmWO.GsGCSupply.Create(GsGridControl)
+Gui.frmWO.GsGCSupply.Size(8040,3765)
+Gui.frmWO.GsGCSupply.Position(8130,8715)
+Gui.frmWO.GsGCSupply.Event(RowCellClick,Hyperlinks)
+Gui.frmWO.lblDemand.Create(Label,"Demand",True,1935,255,0,30,8475,True,0,"Arial",8,-2147483633,0)
+Gui.frmWO.lblDemand.FontStyle(True,False,False,False,False)
+Gui.frmWO.dtpCutoff.Create(DatePicker)
+Gui.frmWO.dtpCutoff.Size(1425,285)
+Gui.frmWO.dtpCutoff.Position(1305,720)
+Gui.frmWO.dtpCutoff.Enabled(False)
+Gui.frmWO.cmdRefresh.Create(Button)
+Gui.frmWO.cmdRefresh.Size(390,330)
+Gui.frmWO.cmdRefresh.Position(2760,705)
+Gui.frmWO.cmdRefresh.Caption("REFRESH")
+Gui.frmWO.cmdRefresh.Event(Click,cmdRefresh_Click)
+Gui.frmWO.chkCutoff.Create(CheckBox)
+Gui.frmWO.chkCutoff.Size(1260,255)
+Gui.frmWO.chkCutoff.Position(30,780)
+Gui.frmWO.chkCutoff.Caption("Cutoff Date:")
+Gui.frmWO.chkCutoff.Event(Click,chkCutoff_Click)
+Gui.frmWO.tabWO.Create(Tab)
+Gui.frmWO.tabWO.Size(16140,7320)
+Gui.frmWO.tabWO.Position(30,1050)
+Gui.frmWO.tabWO.Anchor(15)
+Gui.frmWO.tabWO.Tabs(1)
+Gui.frmWO.tabWO.SetTab(0)
+Gui.frmWO.tabWO.Caption("Work Orders")
+Gui.frmWO.GsGCWO.Create(GsGridControl)
+Gui.frmWO.GsGCWO.Size(16005,6915)
+Gui.frmWO.GsGCWO.Position(0,0)
+Gui.frmWO.GsGCWO.Event(RowCellClick,GsGCWO_RowCellClick)
+Gui.frmWO.GsGCWO.Parent("tabWO",0)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+V.Global.sGsGCIcon.Declare
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'GCG_5743_HoseByFootAutoWODashboard.g2u
+'Trey S
+'Modified from ARC 5381, GAB_5381_Gen_WOs.g2u, by Andres V
+'October 28th, 2019
+'Ticket MER030-32720180829-6
+'Quote 11508 - 0
+'For Mercedes Textiles Limited
+'this script is a modification of the auto wo gen dashboard
+'Mercedes has several parts for the same hose different lengths, but they produce it in feet
+'this will pull in requirements for these parts in feet and create multi part work orders for all the different parts for that hose
+'doing this all on top of the current logic, so the menu loads in normally, then after that it all gets converted to hose by foot
+
+F.Intrinsic.Control.Try
+
+V.Local.sIcon.Declare
+V.Local.sGssLogo.Declare
+
+'Set Application Icon
+F.Intrinsic.String.Build("{0}\gss2.ico",V.Caller.ArtDir,v.Local.sIcon)
+Gui.frmWO..Icon(V.Local.sIcon)
+
+'Set Pic Logo Image
+F.Intrinsic.String.Build("{0}\GAB_GSS_Logo_Green_Dash.png",V.Caller.ArtDir,V.Local.sGssLogo)
+Gui.frmWO.picGSSLogo.Picture(V.Local.sGssLogo)
+
+'Set Logo in GsGridControl Group Header
+F.Intrinsic.String.Build("{0}\GAB_GSS_Logo_Green_Dash.png",V.Caller.ArtDir,V.Global.sGsGCIcon)
+
+F.ODBC.Connection!con.OpenCompanyConnection(500)
+
+Gui.frmWO..Show
+
+F.Intrinsic.Control.CallSub(SetContextMenus)
+F.Intrinsic.Control.CallSub(SetTabAnchors)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.frmWO_UnLoad.Start
+F.Intrinsic.Control.Try
+
+F.ODBC.Connection!con.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.frmWO_UnLoad.End
+
+Program.Sub.SetTabAnchors.Start
+F.Intrinsic.Control.Try
+
+Gui.frmWO.GsGCWO.Position(0,0)
+Gui.frmWO.GsGCWO.Anchor(15)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.SetTabAnchors.End
+
+Program.Sub.frmWO_Resize.Start
+F.Intrinsic.Control.Try
+
+V.Local.iGsGCHt.Declare
+V.Local.iGsGCWt.Declare
+V.Local.iWidth.Declare
+V.Local.iX1.Declare
+V.Local.iX2.Declare
+V.Local.iY1.Declare
+V.Local.iY2.Declare
+
+F.Intrinsic.Math.Div(V.Screen.frmWO!tabWO.Width,2,V.Local.iWidth)
+F.Intrinsic.Math.Sub(V.Local.iWidth,15,V.Local.iWidth)
+Gui.frmWO.GsGCDemand.Size(V.Local.iWidth,3875)
+Gui.frmWO.GsGCSupply.Size(V.Local.iWidth,3875)
+'Demand
+F.Intrinsic.Math.Add(V.Screen.frmWO!tabWO.Top,V.Screen.frmWO!tabWO.Height,80,V.Local.iY1)
+Gui.frmWO.lblDemand.Position(V.Screen.frmWO!tabWO.Left,V.Local.iY1)
+F.Intrinsic.Math.Add(V.Screen.frmWO!lblDemand.Top,V.Screen.frmWO!lblDemand.Height,V.Local.iY2)
+Gui.frmWO.GsGCDemand.Position(V.Screen.frmWO!tabWO.Left,V.Local.iY2)
+'Supply
+F.Intrinsic.Math.Add(V.Screen.frmWO!GsGCDemand.Left,V.Screen.frmWO!GsGCDemand.Width,15,V.Local.iX2)
+Gui.frmWO.lblSupply.Position(V.Local.iX2,V.Local.iY1)
+Gui.frmWO.GsGCSupply.Position(V.Local.iX2,V.Local.iY2)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.frmWO_Resize.End
+
+Program.Sub.SetContextMenus.Start
+F.Intrinsic.Control.Try
+
+Gui.frmWO..ContextMenuCreate("ctxWO")
+Gui.frmWO.GsGCWO.ContextMenuAttach("ctxWO")
+Gui.frmWO..ContextMenuAddItem("ctxWO","Refresh",0,"Refresh")
+Gui.frmWO..ContextMenuAddItem("ctxWO","Export",0,"Export")
+Gui.frmWO..ContextMenuAddItem("ctxWO","Exp",3)
+Gui.frmWO..ContextMenuAddItem("ctxWO","SelAll",0,"Select All")
+Gui.frmWO..ContextMenuAddItem("ctxWO","DeselAll",0,"Deselect All")
+Gui.frmWO..ContextMenuAddItem("ctxWO","Exp",3)
+Gui.frmWO..ContextMenuAddItem("ctxWO","New",0,"Create WO (Manual)")
+'Gui.frmWO..ContextMenuAddItem("ctxWO","NewAuto",0,"Create WO (Auto)")
+Gui.frmWO..ContextMenuAddItem("ctxWO","NewMulti",0,"Create WO (Multi-Part)")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","Refresh", "cmdRefresh_Click")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","Export","GsGCExport")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","SelAll","MenuClick")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","DeselAll","MenuClick")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","New","MenuClick")
+'Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","NewAuto","MenuClick")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxWO","NewMulti","MenuClick")
+
+Gui.frmWO..ContextMenuCreate("ctxDemand")
+Gui.frmWO.GsGCDemand.ContextMenuAttach("ctxDemand")
+Gui.frmWO..ContextMenuAddItem("ctxDemand","Export",0,"Export")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxDemand","Export","GsGCExport")
+
+Gui.frmWO..ContextMenuCreate("ctxSupply")
+Gui.frmWO.GsGCSupply.ContextMenuAttach("ctxSupply")
+Gui.frmWO..ContextMenuAddItem("ctxSupply","Export",0,"Export")
+Gui.frmWO..ContextMenuSetItemEventHandler("ctxSupply","Export","GsGCExport")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.SetContextMenus.End
+
+Program.Sub.GsGCExport.Start
+F.Intrinsic.Control.Try
+
+V.Local.sFileExport.Declare
+V.Local.bExcel.Declare
+V.Local.bFileLocked.Declare
+V.Local.sMsg.Declare
+V.Local.sForm.Declare
+V.Local.sControl.Declare
+
+V.Local.sForm.Set("frmWO")
+F.Intrinsic.Control.SelectCase(V.Args.MenuName)
+	F.Intrinsic.Control.Case("CTXWO")
+		V.Local.sControl.Set("GsGCWO")
+		
+	F.Intrinsic.Control.Case("CTXDEMAND")
+		V.Local.sControl.Set("GsGCDemand")
+		
+	F.Intrinsic.Control.Case("CTXSUPPLY")
+		V.Local.sControl.Set("GsGCSupply")
+F.Intrinsic.Control.EndSelect
+
+F.Automation.MSExcel.CheckPresence(V.Local.bExcel)
+F.Intrinsic.Control.If(V.Local.bExcel)
+	V.Local.sExt.Set("xlsx")
+F.Intrinsic.Control.Else
+	V.Local.sExt.Set("csv")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Build("{0}\5381_AutoWODashboard_{1}_Export.{2}",V.Caller.LocalGssTempDir,V.Local.sControl,V.Local.sExt,V.Local.sFileExport)
+F.Intrinsic.File.IsFileLocked(V.Local.sFileExport,V.Local.bFileLocked)
+F.Intrinsic.Control.If(V.Local.bFileLocked)
+	F.Intrinsic.String.Build("File is already open. Please close and export again.{0}File: {1}",V.Ambient.NewLine,V.Local.sFileExport,V.Local.sMsg)
+	F.Intrinsic.UI.Msgbox(V.Local.sMsg,"File In Use")
+F.Intrinsic.Control.Else
+	Gui.[V.Local.sForm].[V.Local.sControl].Export(V.Local.sFileExport,V.Local.sExt)
+	F.Intrinsic.Task.ShellExec(0,"",V.Local.sFileExport,"","",1)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGCExport.End
+
+Program.Sub.MenuClick.Start
+F.Intrinsic.Control.Try
+
+V.Local.iRow.Declare
+
+F.Intrinsic.Control.SelectCase(V.Args.ItemName)
+	F.Intrinsic.Control.Case("SELALL")
+		F.Data.DataTable.SetValue("dtHoseByFoot",-1,"SELECT",True)
+		
+	F.Intrinsic.Control.Case("DESELALL")
+		F.Data.DataTable.SetValue("dtHoseByFoot",-1,"SELECT",False)
+		
+	F.Intrinsic.Control.Case("NEW")
+		Gui.frmWO.GsGCWO.GetSelectedRows("gvWO",V.Local.iRow)
+		F.Intrinsic.Control.CallSub(CreateManualWO,"Row",V.Local.iRow)
+		
+	F.Intrinsic.Control.Case("NEWAUTO")
+		F.Intrinsic.Control.CallSub(CreateAutoWO,"Multi",False)
+	
+	F.Intrinsic.Control.Case("NEWMULTI")
+		F.Intrinsic.Control.CallSub(CreateAutoWO,"Multi",True)
+	
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.MenuClick.End
+
+Program.Sub.CreateManualWO.Start
+F.Intrinsic.Control.Try
+
+V.Local.iRowCnt.Declare
+V.Local.iRowCnt2.Declare
+V.Local.iPID.Declare
+V.Local.bPID.Declare
+
+'Check WO count before opening screen
+F.ODBC.Connection!con.ExecuteAndReturn("SELECT COUNT(*) FROM JOB_HEADER;",V.Local.iRowCnt)
+
+'Disable grids
+Gui.frmWO.GsGCWO.Enabled(False)
+Gui.frmWO.GsGCDemand.Enabled(False)
+Gui.frmWO.GsGCSupply.Enabled(False)
+
+'Call WO Screen and loop until the screen is closed out
+F.Global.General.LaunchMenuTask(527,2,V.Local.iPID)
+F.Intrinsic.Task.PIDRunning(V.Local.iPID,V.Local.bPID)
+F.Intrinsic.Control.DoUntil(V.Local.bPID,=,False)
+	F.Intrinsic.UI.SleepMS(10)
+	F.Intrinsic.Task.PIDRunning(V.Local.iPID,V.Local.bPID)
+F.Intrinsic.Control.Loop
+
+'Enable Grids
+Gui.frmWO.GsGCWO.Enabled(True)
+Gui.frmWO.GsGCDemand.Enabled(True)
+Gui.frmWO.GsGCSupply.Enabled(True)
+
+'Check WO count after closing WO screen
+F.ODBC.Connection!con.ExecuteAndReturn("SELECT COUNT(*) FROM JOB_HEADER;",V.Local.iRowCnt2)
+
+'If WO counts do not match the assumption is that the WO was created and the line will be removed
+F.Intrinsic.Control.If(V.Local.iRowCnt,<>,V.Local.iRowCnt2)
+	F.Data.DataTable.DeleteRow("dtHoseByFoot",V.Args.Row)
+	F.Data.DataTable.AcceptChanges("dtHoseByFoot")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateManualWO.End
+
+Program.Sub.CreateAutoWO.Start
+F.Intrinsic.Control.Try
+
+V.Local.sDir.Declare
+V.Local.iCnt.Declare
+V.Local.sSelect.Declare
+V.Local.sData.Declare
+V.Local.sFile.Declare
+V.Local.iRow.Declare
+V.Local.dDueDate.Declare
+V.Local.iRunQty.Declare
+V.Local.sTempDescription.Declare(String)
+V.Local.sQuantity.Declare(String)
+
+F.Data.DataView.Create("dtHoseByFoot", "dvCheck", 22, "[SELECT] = True and [ROUTER_EXISTS] = False", "")
+F.Intrinsic.Control.If(V.DataView.dtHoseByFoot!dvCheck.RowCount, >, 0)
+	F.Intrinsic.UI.Msgbox("Work orders cannot be created for parts without routers. Work order generation cancelled.")
+	F.Data.DataView.Close("dtHoseByFoot", "dvCheck")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+'Disable grids
+Gui.frmWO.GsGCWO.Enabled(False)
+Gui.frmWO.GsGCDemand.Enabled(False)
+Gui.frmWO.GsGCSupply.Enabled(False)
+
+'Create Directory
+F.Intrinsic.String.Build("{0}\AUTOWO",V.Caller.FilesDir,V.Local.sDir)
+F.Intrinsic.File.CreateDir(V.Local.sDir)
+
+'Set File Path
+F.Intrinsic.String.Build("{0}\UPLIV950.TXT",V.Caller.FilesDir,V.Local.sFile)
+
+'Get Selected Records and Create WO File (UPLIV950.TXT)
+'F.Data.DataView.Create("dtHoseByFoot", "dvCheck", 22, "SELECT = True", "")
+F.Data.DataView.SetFilter("dtHoseByFoot", "dvCheck", "SELECT = True")
+F.Intrinsic.Control.If(V.DataView.dtHoseByFoot!dvCheck.RowCount, <, 1)
+	F.Intrinsic.UI.Msgbox("There are no records selected.","Auto Gen WO")
+	Gui.frmWO.GsGCWO.Enabled(True)
+	Gui.frmWO.GsGCDemand.Enabled(True)
+	Gui.frmWO.GsGCSupply.Enabled(True)
+	F.Data.DataView.Close("dtHoseByFoot", "dvCheck")
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Else
+	'Loop through orders and create WO file
+	F.Intrinsic.StringBuilder.Create("DATA")
+	
+	F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataView.dtHoseByFoot!dvCheck.RowCount--,1)
+
+		F.Intrinsic.String.Build("{0}0000", V.DataView.dtHoseByFoot!dvCheck(V.Local.iCnt).RUNQTY!FieldValLong, V.Local.sQuantity)
+		V.Local.dDueDate.Set(V.DataView.dtHoseByFoot!dvCheck(V.Local.iCnt).DUEDATE!FieldVal)
+		
+		F.Intrinsic.String.Build("{0},{1},{2},{3},{4}", V.DataView.dtHoseByFoot!dvCheck(V.Local.iCnt).PART!FieldValTrim, V.DataView.dtHoseByFoot!dvCheck(V.Local.iCnt).LOCATION!FieldValTrim, V.DataView.dtHoseByFoot!dvCheck(V.Local.iCnt).DESCRIPTION!FieldValTrim, V.Local.sQuantity, V.Local.dDueDate.FormatYYYYMMDD, V.Local.sData)
+		F.Intrinsic.StringBuilder.AppendLine("DATA",V.Local.sData)
+		
+	F.Intrinsic.Control.Next(V.Local.iCnt)
+F.Intrinsic.Control.EndIf
+
+'Create file from data
+F.Intrinsic.StringBuilder.ToString("DATA",V.Local.sData)
+F.Intrinsic.File.String2File(V.Local.sFile,V.Local.sData)
+F.Intrinsic.StringBuilder.Dispose("DATA")
+
+'schedule single wos
+F.Global.General.CallWrapperSync(50,"INV950/S")
+
+'now modify and reschedule them to make multi part
+F.Intrinsic.Control.CallSub(ConvertToMultiPart)
+
+'Remove Selected Records
+F.Intrinsic.Control.For(V.Local.iCnt,V.DataView.dtHoseByFoot!dvCheck.RowCount--,0,-1)
+	F.Data.DataView.DeleteRow("dtHoseByFoot", "dvCheck", V.Local.iCnt)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+F.Data.DataView.Close("dtHoseByFoot", "dvCheck")
+F.Data.DataTable.AcceptChanges("dtHoseByFoot")
+
+'Enable Grids
+Gui.frmWO.GsGCWO.Enabled(True)
+Gui.frmWO.GsGCDemand.Enabled(True)
+Gui.frmWO.GsGCSupply.Enabled(True)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.CreateAutoWO.End
+
+Program.Sub.ConvertToMultiPart.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.sFilter.Declare(String)
+V.Local.sDescriptions.Declare(String)
+V.Local.sStartDate.Declare(String)
+V.Local.sDueDate.Declare(String)
+V.Local.sParameters.Declare(String)
+
+'get jobs we just created
+F.Data.DataTable.AddColumn("dtHoseByFoot", "DATE_STRING", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFoot", "RUN_QUANTITY_STRING", "String", "")
+F.Data.DataTable.SetValueFormat("dtHoseByFoot", -1, "DUEDATE", "DATE_STRING", "YYYY-MM-DD")
+F.Data.DataTable.SetValueFormat("dtHoseByFoot", -1, "RUNQTY", "RUN_QUANTITY_STRING", "0.0000")
+F.Data.DataView.ToString("dtHoseByFoot", "dvCheck", "PART*!*LOCATION*!*RUN_QUANTITY_STRING*!*DATE_STRING", "", "','", V.Local.sFilter)
+F.Data.DataTable.RemoveColumn("dtHoseByFoot", "DATE_STRING")
+F.Data.DataTable.RemoveColumn("dtHoseByFoot", "RUN_QUANTITY_STRING")
+
+F.Intrinsic.String.Build("select RTRIM(JOB) JOB, RTRIM(SUFFIX) SUFFIX, RTRIM(JOB) + RTRIM(SUFFIX) as JOBSUFF, RTRIM(PART) PART, RTRIM(LOCATION) LOCATION, RTRIM(ROUTER) ROUTER, RTRIM(DESCRIPTION) DESCRIPTION, RTRIM(PART) + RTRIM(LOCATION) + RTRIM(QTY_ORDER) + CAST(DATE_DUE as Char(10)) as JOB_KEY, DATE_START, DATE_DUE from V_JOB_HEADER where JOBSUFF in (select max(RTRIM(JOB) + RTRIM(SUFFIX)) from V_JOB_HEADER where DATE_OPENED = '{1}' group by PART) and JOB_KEY in ('{0}') and DATE_OPENED = '{1}' order by JOB desc, SUFFIX desc", V.Local.sFilter, V.Ambient.Date.PervasiveDate, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtMultiJobs", "Con", V.Local.sSQL)
+
+'create part filter
+F.Data.DataView.Create("dtMultiJobs", "dvMultiJobs", 22)
+F.Data.DataView.ToString("dtMultiJobs", "dvMultiJobs", "PART", "***NODELIMITER***", "','", V.Local.sFilter)
+F.Data.DataView.Close("dtMultiJobs", "dvMultiJobs")
+
+'get all the parts with these routers (user 1)
+F.Intrinsic.String.Build("select PART, RTRIM(LOCATION) LOCATION, RTRIM(TEXT_INFO1) ROUTER, RTRIM(DESCRIPTION) DESCRIPTION from V_INVENTORY_ALL where ROUTER in ('{0}') and PART <> ROUTER", V.Local.sFilter, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtMultiParts", "Con", V.Local.sSQL)
+F.Data.DataTable.AddColumn("dtMultiParts", "SEQ", "String", "0000")
+F.Data.DataTable.AddColumn("dtMultiParts", "SCHEDULE", "String", "N")
+F.Data.DataTable.AddColumn("dtMultiParts", "LN_TYPE", "String", "P")
+F.Data.DataTable.AddColumn("dtMultiParts", "LAST_CHG_BY", "String", V.Caller.User)
+F.Data.DataTable.AddColumn("dtMultiParts", "LAST_CHG_DATE", "String", V.Ambient.Date.FormatYYYYMMDD)
+F.Data.DataTable.AddColumn("dtMultiParts", "LAST_CHG_TIME", "String", V.Ambient.Time.FormatHHNNSS00)
+F.Data.DataTable.AddColumn("dtMultiParts", "WO", "String", "")
+F.Data.DataTable.AddColumn("dtMultiParts", "WO_SUFFIX", "String", "")
+F.Data.DataTable.AddColumn("dtMultiParts", "QUANTITY", "Float", 1)
+
+F.Data.DataView.Create("dtMultiParts", "dvMultiParts", 22, "", "PART")
+
+'for each work order, get it's multi parts and add them to the multi part table
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtMultiJobs.RowCount--, 1)
+
+	'create filter
+	F.Intrinsic.String.Build("[ROUTER] = '{0}' and LOCATION = '{1}'", V.DataTable.dtMultiJobs(V.Local.iCounter).PART!FieldValTrim, V.DataTable.dtMultiJobs(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtMultiParts", "dvMultiParts", V.Local.sFilter)
+	
+	F.Intrinsic.Control.If(V.DataView.dtMultiParts!dvMultiParts.RowCount, >, 0)
+		'save records to multi part wo table
+		F.Data.DataView.ToDataTable("dtMultiParts", "dvMultiParts", "dtTemp")
+		
+		'set schedule line
+		F.Data.DataTable.AddRow("dtTemp", "PART", V.DataTable.dtMultiJobs(V.Local.iCounter).PART!FieldValTrim, "LOCATION", V.DataTable.dtMultiJobs(V.Local.iCounter).LOCATION!FieldValTrim, "QUANTITY", 0, "SCHEDULE", "Y", "LN_TYPE", "R", "ROUTER", V.DataTable.dtMultiJobs(V.Local.iCounter).PART!FieldValTrim)
+		F.Data.DataTable.SetValue("dtTemp", -1, "WO", V.DataTable.dtMultiJobs(V.Local.iCounter).JOB!FieldValTrim, "WO_SUFFIX", V.DataTable.dtMultiJobs(V.Local.iCounter).SUFFIX!FieldValTrim)
+		
+		F.Data.DataTable.SaveToDB("dtTemp", "Con", "JOB_MULT_PARTS_LN", "WO*!*WO_SUFFIX*!*PART*!*LOCATION", 128, "WO@!@WO*!*WO_SUFFIX@!@WO_SUFFIX*!*PART@!@PART*!*LOCATION@!@LOC*!*SEQ@!@SEQ*!*DESCRIPTION@!@DESCR*!*QUANTITY@!@QTY*!*SCHEDULE@!@SCHEDULE*!*LN_TYPE@!@LN_TYPE*!*LAST_CHG_BY@!@LAST_CHG_BY*!*LAST_CHG_DATE@!@LAST_CHG_DATE*!*LAST_CHG_TIME@!@LAST_CHG_TIME*!*ROUTER@!@ROUTER")
+		
+		F.Data.DataTable.Close("dtTemp")
+		
+		'since this is now multi part, clear the part
+		F.Intrinsic.String.Build("update JOB_HEADER set PART = '', Router = '' where JOB = '{0}' and SUFFIX = '{1}'", V.DataTable.dtMultiJobs(V.Local.iCounter).JOB!FieldValTrim, V.DataTable.dtMultiJobs(V.Local.iCounter).SUFFIX!FieldValTrim, V.Local.sSQL)
+		F.ODBC.Connection!Con.Execute(V.Local.sSQL)
+		
+		'reschedule the job
+		V.Local.sDueDate.Set(V.DataTable.dtMultiJobs(V.Local.iCounter).DATE_DUE!FieldVal)
+		F.Intrinsic.String.Format(V.Local.sDueDate, "MMDDYY", V.Local.sDueDate)
+		V.Local.sStartDate.Set(V.DataTable.dtMultiJobs(V.Local.iCounter).DATE_START!FieldVal)
+		F.Intrinsic.String.Format(V.Local.sDueDate, "MMDDYY",V.Local.sDueDate)
+		F.Intrinsic.String.ConcatCallWrapperArgs(V.Local.sStartDate, V.Local.sDueDate, V.DataTable.dtMultiJobs(V.Local.iCounter).JOB!FieldValTrim, V.DataTable.dtMultiJobs(V.Local.iCounter).SUFFIX!FieldValTrim, "", "B", V.Local.sParameters)
+		F.Global.General.CallWrapperSync(500030, V.Local.sParameters)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Data.DataView.Close("dtMultiParts", "dvMultiParts")
+F.Data.DataTable.Close("dtMultiParts")
+F.Data.DataTable.Close("dtMultiJobs")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.ConvertToMultiPart.End
+
+Program.Sub.chkCutoff_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.If(V.Screen.frmWO!chkCutoff.Value,=,1)
+	Gui.frmWO.dtpCutoff.Enabled(True)
+F.Intrinsic.Control.Else
+	Gui.frmWO.dtpCutoff.Enabled(False)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.chkCutoff_Click.End
+
+Program.Sub.InvCheck.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare
+V.Local.iCnt.Declare
+V.Local.fSum1.Declare
+V.Local.fSum2.Declare
+V.Local.fCurOnHand.Declare
+V.Local.fBalance.Declare
+V.Local.bDic.Declare
+V.Local.dCutoff.Declare
+
+F.Intrinsic.Control.If(V.DataTable.dtInvCheck.Exists)
+	F.Data.DataTable.Close("dtInvCheck")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.dtDemand.Exists)
+	Gui.frmWO.lblDemand.Caption("Demand")
+	Gui.frmWO.GsGCDemand.ClearRows("gvDemand")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.dtSupply.Exists)
+	Gui.frmWO.lblSupply.Caption("Supply")
+	Gui.frmWO.GsGCSupply.ClearRows("gvSupply")
+F.Intrinsic.Control.EndIf
+
+Gui.frmWO.lblStatus.Caption("Loading Work Orders....")
+Gui.frmWO.lblStatus.Visible(True)
+Gui.frmWO.progBarStatus.Visible(True)
+
+V.Local.dCutoff.Set(V.Screen.frmWO!dtpCutoff.Value)
+
+F.Data.DataTable.CreateFromSQL("dtInvCheck","con","SELECT A.PART+A.LOCATION AS PMAST, A.PART, A.LOCATION, A.DESCRIPTION, A.PRODUCT_LINE, A.CODE_SORT, QTY_ONHAND, QTY_ORDER, QTY_REORDER, A.QTY_ONORDER_WO, A.TIME_MATERIAL_LEAD FROM V_INVENTORY_MSTR A JOIN V_INVENTORY_MST2 B ON A.PART = B.PART AND A.LOCATION = B.LOCATION WHERE B.CODE_SOURCE IN ('M');",True)
+F.Data.DataTable.AddColumn("dtInvCheck","QTY_COMMITTED_WO",Float,0.0000)
+F.Data.DataTable.AddColumn("dtInvCheck","QTY_COMMITTED_SO",Float,0.0000)
+F.Data.DataTable.AddColumn("dtInvCheck","CurOnHand",Float,0.0000)
+F.Data.DataTable.AddColumn("dtInvCheck","BALANCE",Float,0.0000)
+F.Data.DataTable.AddExpressionColumn("dtInvCheck","QTY_REQUIRED",Float,"QTY_COMMITTED_WO+QTY_COMMITTED_SO")
+
+F.Intrinsic.Control.If(V.Screen.frmWO!chkCutoff.Value,=,0)
+	F.Data.Dictionary.CreateFromSQL("dicJobCom","con","SELECT PART+LOCATION AS PMAST,SUM(QTY_COMMITTED-QTY_ISSUED) AS QTY_COMMITTED FROM V_JOB_COMMITMENTS GROUP BY PMAST;")
+	F.Data.Dictionary.SetDefaultReturn("dicJobCom",0.0000)
+	F.Data.DataTable.FillFromDictionary("dtInvCheck","dicJobCom","PMAST","QTY_COMMITTED_WO")
+	F.Data.Dictionary.Close("dicJobCom")
+	
+	F.Data.Dictionary.CreateFromSQL("dicSOCom","con","SELECT PART+LOCATION AS PMAST,SUM(QTY_BO) AS QTY_COMMITTED FROM V_ORDER_LINES GROUP BY PMAST;")
+	F.Data.Dictionary.SetDefaultReturn("dicSOCom",0.0000)
+	F.Data.DataTable.FillFromDictionary("dtInvCheck","dicSOCom","PMAST","QTY_COMMITTED_SO")
+	F.Data.Dictionary.Close("dicSOCom")
+	
+F.Intrinsic.Control.Else
+	F.Intrinsic.String.Build("SELECT A.PART+A.LOCATION AS PMAST,SUM(QTY_COMMITTED-QTY_ISSUED) AS QTY_COMMITTED FROM V_JOB_COMMITMENTS A JOIN V_INVENTORY_MSTR B ON A.PART = B.PART AND A.LOCATION = B.LOCATION WHERE DATEADD(DAY,-TIME_MATERIAL_LEAD,A.DATE_DUE) <= '{0}' GROUP BY PMAST;",V.Local.dCutoff.PervasiveDate,V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dicJobCom","con",V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dicJobCom",0.0000)
+	F.Data.DataTable.FillFromDictionary("dtInvCheck","dicJobCom","PMAST","QTY_COMMITTED_WO")
+	F.Data.Dictionary.Close("dicJobCom")
+	
+	F.Intrinsic.String.Build("SELECT A.PART+A.LOCATION AS PMAST,SUM(QTY_BO) AS QTY_COMMITTED FROM V_ORDER_LINES A JOIN V_INVENTORY_MSTR B ON A.PART = B.PART AND A.LOCATION = B.LOCATION WHERE DATEADD(DAY,-TIME_MATERIAL_LEAD,A.DATE_ITEM_PROM) <= '{0}' GROUP BY PMAST;",V.Local.dCutoff.PervasiveDate,V.Local.sSQL)
+	F.Data.Dictionary.CreateFromSQL("dicSOCom","con",V.Local.sSQL)
+	F.Data.Dictionary.SetDefaultReturn("dicSOCom",0.0000)
+	F.Data.DataTable.FillFromDictionary("dtInvCheck","dicSOCom","PMAST","QTY_COMMITTED_SO")
+	F.Data.Dictionary.Close("dicSOCom")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataTable.dtInvCheck.RowCount--,1)
+	F.Intrinsic.Math.Add(V.DataTable.dtInvCheck(V.Local.iCnt).QTY_ONHAND!FieldValFloat,V.DataTable.dtInvCheck(V.Local.iCnt).QTY_ONORDER_WO!FieldValFloat,V.Local.fSum1)
+	F.Intrinsic.Math.Add(V.DataTable.dtInvCheck(V.Local.iCnt).QTY_COMMITTED_WO!FieldValFloat,V.DataTable.dtInvCheck(V.Local.iCnt).QTY_COMMITTED_SO!FieldValFloat,V.DataTable.dtInvCheck(V.Local.iCnt).QTY_REORDER!FieldValFloat,V.Local.fSum2)
+	V.Local.fCurOnHand.Set(V.Local.fSum1)
+	F.Intrinsic.Math.Sub(V.Local.fSum1,V.Local.fSum2,V.Local.fBalance)
+	F.Data.DataTable.SetValue("dtInvCheck",V.Local.iCnt,"CurOnHand",V.Local.fCurOnHand,"BALANCE",V.Local.fBalance)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+'This is the list of parts to loop through 
+F.Data.DataView.Create("dtInvCheck","dvInvCheck",22,"BALANCE < 0","PMAST ASC")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.InvCheck.End
+
+Program.Sub.LoadMRP.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCnt.Declare
+V.Local.iCnt2.Declare
+V.Local.iNext.Declare
+V.Local.sFilter.Declare
+V.Local.fCurOnHand.Declare
+V.Local.fQty.Declare
+V.Local.fNextQty.Declare
+V.Local.fDiff.Declare
+V.Local.fDiff2.Declare
+V.Local.sRunQty.Declare
+V.Local.fRunQty.Declare
+V.Local.fDecimal.Declare
+V.Local.fPostOnHand.Declare
+V.Local.fOrderQty.Declare
+V.Local.fOnHandQty.Declare
+V.Local.fReqdQty.Declare
+V.Local.fOnOrder.Declare
+V.Local.fReOrderQty.Declare
+V.Local.sPartDesc.Declare
+V.Local.fLeadTime.Declare
+V.Local.sPart.Declare
+V.Local.sLoc.Declare
+V.Local.sPL.Declare
+V.Local.sSortCode.Declare
+V.Local.dDateDue.Declare
+V.Local.sSign.Declare
+V.Local.sSQL.Declare
+V.Local.dCutoff.Declare
+V.Local.fCommit.Declare
+v.Local.fOnHandSum.Declare
+V.Local.sSelect.Declare
+V.Local.sROPParts.Declare
+
+F.Intrinsic.Control.If(V.DataTable.dtJobs.Exists)
+	F.Data.DataTable.Close("dtJobs")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataTable.dtMRP.Exists)
+	F.Data.DataTable.Close("dtMRP")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.Screen.frmWO!chkCutoff.Value,=,0)
+	F.Data.DataTable.CreateFromSQL("dtJobs","con","SELECT PART,LOCATION,'Work Order' AS SOURCE,JOB,SUFFIX,SEQUENCE,QTY_COMMITTED-QTY_ISSUED AS QUANTITY,DATE_DUE FROM V_JOB_COMMITMENTS UNION SELECT PART,LOCATION,'Sales Order' AS SOURCE,ORDER_NO AS JOB,LEFT(RECORD_NO,3) AS SUFFIX,'' AS SEQ,QTY_BO AS QUANTITY,DATE_ITEM_PROM AS DATE_DUE FROM V_ORDER_LINES ORDER BY PART,DATE_DUE ASC;",True)
+F.Intrinsic.Control.Else
+	V.Local.dCutoff.Set(V.Screen.frmWO!dtpCutoff.Value)
+	F.Intrinsic.String.Build("SELECT A.PART,A.LOCATION,'Work Order' AS SOURCE,JOB,SUFFIX,SEQUENCE,QTY_COMMITTED-QTY_ISSUED AS QUANTITY,DATE_DUE FROM V_JOB_COMMITMENTS A JOIN V_INVENTORY_MSTR B ON A.PART = B.PART AND A.LOCATION = B.LOCATION WHERE DATEADD(DAY,-TIME_MATERIAL_LEAD,A.DATE_DUE) <= '{0}' UNION SELECT A.PART,A.LOCATION,'Sales Order' AS SOURCE,ORDER_NO AS JOB,LEFT(RECORD_NO,3) AS SUFFIX,'' AS SEQ,QTY_BO AS QUANTITY,DATE_ITEM_PROM AS DATE_DUE FROM V_ORDER_LINES A JOIN V_INVENTORY_MSTR B ON A.PART = B.PART AND A.LOCATION = B.LOCATION WHERE DATEADD(DAY,-TIME_MATERIAL_LEAD,A.DATE_ITEM_PROM) <= '{0}' ORDER BY PART,DATE_DUE ASC;",V.Local.dCutoff.PervasiveDate,V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtJobs","con",V.Local.sSQL,True)
+F.Intrinsic.Control.EndIf
+
+'Add in Reorder Point Parts
+F.Data.DataTable.Select("dtInvCheck","BALANCE < 0 AND QTY_REQUIRED = 0",V.Local.sSelect)
+F.Intrinsic.Control.If(V.Local.sSelect.IsNotNoReturn)
+	F.Intrinsic.String.Split(V.Local.sSelect,"*!*",V.Local.sSelect)
+	F.Intrinsic.Control.For(V.Local.iCnt,0,V.Local.sSelect.UBound,1)
+		F.Intrinsic.Control.If(V.Local.iCnt,=,0)
+			F.Intrinsic.String.Build("'{0}'",V.DataTable.dtInvCheck(V.Local.sSelect(V.Local.iCnt)).PMAST!FieldVal,V.Local.sROPParts)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("{0},'{1}'",V.Local.sROPParts,V.DataTable.dtInvCheck(V.Local.sSelect(V.Local.iCnt)).PMAST!FieldVal,V.Local.sROPParts)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCnt)
+	F.Intrinsic.String.Build("SELECT PART,LOCATION,'Reorder Point' AS SOURCE,'' AS JOB,'' AS SUFFIX,'' AS SEQUENCE,QTY_REORDER-QTY_ONHAND AS QUANTITY,CURDATE() AS DATE_DUE FROM V_INVENTORY_MSTR WHERE PART+LOCATION IN ({0});",V.Local.sROPParts,V.Local.sSQL)
+	F.Data.DataTable.CreateFromSQL("dtROPParts","con",V.Local.sSQL,True)
+	F.Data.DataTable.Merge("dtROPParts","dtJobs",True,3)
+	F.Data.DataTable.Close("dtROPParts")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.If(V.DataView.dtInvCheck!dvInvCheck.RowCount,=,0)
+	Gui.frmWO.lblStatus.Visible(False)
+	Gui.frmWO.progBarStatus.Visible(False)
+	F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.EndIf
+
+Gui.frmWO.progBarStatus.Min(0)
+F.Intrinsic.Control.If(V.DataView.dtInvCheck!dvInvCheck.RowCount,<>,0)
+	Gui.frmWO.progBarStatus.Max(V.DataView.dtInvCheck!dvInvCheck.RowCount)
+F.Intrinsic.Control.Else
+	Gui.frmWO.progBarStatus.Max(100)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataView.dtInvCheck!dvInvCheck.RowCount--,1)
+	Gui.frmWO.progBarStatus.Value(V.Local.iCnt)
+	F.Intrinsic.String.Replace(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).PART!FieldValTrim,"'","''",V.Local.sPart)
+	F.Intrinsic.String.Replace(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).LOCATION!FieldValTrim,"'","''",V.Local.sLoc)
+	F.Intrinsic.String.Build("PART = '{0}' AND LOCATION = '{1}'",V.Local.sPart,V.Local.sLoc,V.Local.sFilter)
+	F.Data.DataView.Create("dtJobs","dvJobs",22,V.Local.sFilter,"PART ASC,LOCATION ASC,DATE_DUE ASC")
+	
+	V.Local.iCnt2.Set(0)
+	V.Local.iNext.Set(0)
+	V.Local.fQty.Set(0)
+	V.Local.fNextQty.Set(0)
+	V.Local.fDiff.Set(0)
+	V.Local.fDiff2.Set(0)
+	V.Local.fRunQty.Set(0)
+	V.Local.sRunQty.Set("")
+	V.Local.sSign.Set("")
+	V.Local.fDecimal.Set(0)
+	V.Local.fPostOnHand.Set(0)
+	V.Local.fCurOnHand.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).CurOnHand!FieldValFloat)
+	V.Local.sPartDesc.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).DESCRIPTION!FieldValTrim)
+	V.Local.fLeadTime.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).TIME_MATERIAL_LEAD!FieldValFloat)
+	V.Local.fOrderQty.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_ORDER!FieldValFloat)
+	V.Local.fOnHandQty.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_ONHAND!FieldValFloat)
+	V.Local.fReqdQty.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_REQUIRED!FieldValFloat)
+	V.Local.fReOrderQty.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_REORDER!FieldValFloat)
+	F.Intrinsic.Date.DateAdd("D",V.Local.fLeadTime,V.Ambient.Date,V.Local.dDateDue)
+	V.Local.sPL.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).PRODUCT_LINE!FieldValTrim)
+	V.Local.sSortCode.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).CODE_SORT!FieldValTrim)
+	F.Intrinsic.Math.Add(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_COMMITTED_WO!FieldValFloat,V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_COMMITTED_SO!FieldValFloat,V.Local.fCommit)
+	F.Intrinsic.Math.Add(V.Local.fOnHandQty,V.Local.fOnOrder,V.Local.fOnHandSum)
+	
+	F.Intrinsic.Control.If(V.DataTable.dtMRP.Exists,=,False)
+		F.Data.DataView.ToDataTable("dtJobs","dvJobs","dtMRP",True)
+		F.Data.DataTable.AddColumn("dtMRP","CURONHAND",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","CURONHAND2",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","RUNQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","POSTONHAND",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","DESCRIPTION",String,"")
+		F.Data.DataTable.AddColumn("dtMRP","PL",String,"")
+		F.Data.DataTable.AddColumn("dtMRP","SORTCODE",String,"")
+		F.Data.DataTable.AddColumn("dtMRP","LEADTIME",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","ORDERQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","ONHANDQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","REQDQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","ONORDER",Float,0)
+		F.Data.DataTable.AddColumn("dtMRP","REORDERPT",Float,0)
+	F.Intrinsic.Control.Else
+		F.Data.DataView.ToDataTable("dtJobs","dvJobs","dtMRPMerge",True)
+		F.Data.DataTable.AddColumn("dtMRPMerge","CURONHAND",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","CURONHAND2",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","RUNQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","POSTONHAND",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","DESCRIPTION",String,"")
+		F.Data.DataTable.AddColumn("dtMRPMerge","PL",String,"")
+		F.Data.DataTable.AddColumn("dtMRPMerge","SORTCODE",String,"")
+		F.Data.DataTable.AddColumn("dtMRPMerge","LEADTIME",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","ORDERQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","ONHANDQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","REQDQTY",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","ONORDER",Float,0)
+		F.Data.DataTable.AddColumn("dtMRPMerge","REORDERPT",Float,0)
+		F.Data.DataTable.Merge("dtMRPMerge","dtMRP",True,3)
+		F.Data.DataTable.Close("dtMRPMerge")
+	F.Intrinsic.Control.EndIf
+	'Create MRP DataView
+	F.Data.DataView.Create("dtMRP","dvMRP",22,V.Local.sFilter,"DATE_DUE ASC,JOB ASC,SUFFIX ASC")
+	
+	'Retrieve amount to purchase
+	F.Intrinsic.Math.Add(V.Local.fReqdQty,V.Local.fReOrderQty,V.Local.fDiff)
+	F.Intrinsic.Math.Sub(V.Local.fDiff,V.Local.fCurOnHand,V.Local.fDiff)
+	F.Intrinsic.Control.If(V.Local.fOrderQty,=,0)
+		V.Local.fOrderQty.Set(1)
+		V.Local.fRunQty.Set(V.Local.fDiff)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Math.Div(V.Local.fDiff,V.Local.fOrderQty,V.Local.fRunQty)
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Math.Abs(V.Local.fRunQty,V.Local.fRunQty)
+	F.Intrinsic.String.Split(V.Local.fRunQty,".",V.Local.sRunQty)
+	V.Local.fRunQty.Set(V.Local.sRunQty(0).Float)
+	F.Intrinsic.Control.If(V.Local.sRunQty(1),<>,"OOB")
+		F.Intrinsic.String.Left(V.Local.sRunQty(1),2,V.Local.sRunQty)
+		V.Local.fDecimal.Set(V.Local.sRunQty.Float)
+		F.Intrinsic.Control.If(V.Local.fDecimal,>,0)
+			F.Intrinsic.Math.Add(V.Local.fRunQty,1,V.Local.fRunQty)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.Local.fOrderQty,=,1)
+	F.Intrinsic.Control.AndIf(V.Local.fRunQty,=,1)
+		F.Intrinsic.Math.Mult(V.Local.fDiff,V.Local.fOrderQty,V.Local.fRunQty)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.Math.Mult(V.Local.fRunQty,V.Local.fOrderQty,V.Local.fRunQty)
+	F.Intrinsic.Control.EndIf
+	
+	V.Local.fOrderQty.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_ORDER!FieldValFloat)
+	
+	'MRP Part
+	F.Intrinsic.Control.For(V.Local.iCnt2,0,V.DataView.dtMRP!dvMRP.RowCount--,1)
+		V.Local.fQty.Set(V.DataView.dtMRP!dvMRP(V.Local.iCnt2).QUANTITY!FieldValFloat)
+		V.Local.fOrderQty.Set(V.DataView.dtInvCheck!dvInvCheck(V.Local.iCnt).QTY_ORDER!FieldValFloat)
+		
+		F.Intrinsic.Control.If(V.Local.iCnt2,=,0)
+			V.Local.fDiff.Set(V.Local.fOnHandQty)
+			F.Intrinsic.Math.Sub(V.Local.fOnHandQty,V.Local.fQty,V.Local.fPostOnHand)
+		F.Intrinsic.Control.Else
+			V.Local.fDiff.Set(V.Local.fPostOnHand)
+			F.Intrinsic.Math.Sub(V.Local.fPostOnHand,V.Local.fQty,V.Local.fPostOnHand)
+		F.Intrinsic.Control.EndIf
+
+		F.Intrinsic.Control.If(V.Local.fPostOnHand,>=,V.Local.fReOrderQty)
+			F.Data.DataView.SetValue("dtMRP","dvMRP",V.Local.iCnt2,"CURONHAND",V.Local.fDiff,"RUNQTY",0,"POSTONHAND",V.Local.fPostOnHand,"DESCRIPTION",V.Local.sPartDesc,"PL",V.Local.sPL,"SORTCODE",V.Local.sSortCode,"LEADTIME",V.Local.fLeadTime,"CURONHAND2",V.Local.fCurOnHand,"ORDERQTY",V.Local.fOrderQty,"ONHANDQTY",V.Local.fOnHandQty,"REQDQTY",V.Local.fReqdQty,"ONORDER",V.Local.fOnOrder,"REORDERPT",V.Local.fReOrderQty)
+		F.Intrinsic.Control.Else
+			F.Data.DataView.SetValue("dtMRP","dvMRP",V.Local.iCnt2,"CURONHAND",V.Local.fDiff,"RUNQTY",V.Local.fRunQty,"POSTONHAND",V.Local.fPostOnHand,"DESCRIPTION",V.Local.sPartDesc,"PL",V.Local.sPL,"SORTCODE",V.Local.sSortCode,"LEADTIME",V.Local.fLeadTime,"CURONHAND2",V.Local.fCurOnHand,"ORDERQTY",V.Local.fOrderQty,"ONHANDQTY",V.Local.fOnHandQty,"REQDQTY",V.Local.fReqdQty,"ONORDER",V.Local.fOnOrder,"REORDERPT",V.Local.fReOrderQty)
+			F.Intrinsic.Control.ExitFor(V.Local.iCnt2)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.iCnt2)
+	
+	F.Data.DataView.Close("dtMRP","dvMRP")
+	F.Data.DataView.Close("dtJobs","dvJobs")
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadMRP.End
+
+Program.Sub.LoadWOs.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCnt.Declare
+V.Local.fLeadTime.Declare
+V.Local.dDateDue.Declare
+V.Local.dDatePurch.Declare
+V.Local.sDatePurch.Declare
+V.Local.fRunQty.Declare
+V.Local.iCnt2.Declare
+V.Local.sSelect.Declare
+V.Local.sFilter.Declare
+V.Local.sPart.Declare
+V.Local.sLoc.Declare
+
+F.Intrinsic.Control.If(V.DataTable.dtWO0.Exists)
+	F.Data.DataTable.Close("dtWO0")
+	F.Data.DataTable.Close("dtWO")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataView.Create("dtMRP","dvMRP",22,"RunQty <> 0","PART ASC,LOCATION ASC,DATE_DUE ASC")
+F.Data.DataView.ToDataTable("dtMRP","dvMRP","dtWO0",True)
+F.Data.DataView.Close("dtMRP","dvMRP")
+'RemoveColumns
+F.Data.DataTable.RemoveColumn("dtWO0","SOURCE")
+F.Data.DataTable.RemoveColumn("dtWO0","JOB")
+F.Data.DataTable.RemoveColumn("dtWO0","SUFFIX")
+F.Data.DataTable.RemoveColumn("dtWO0","SEQUENCE")
+F.Data.DataTable.RemoveColumn("dtWO0","QUANTITY")
+F.Data.DataTable.RemoveColumn("dtWO0","CURONHAND")
+F.Data.DataTable.RemoveColumn("dtWO0","CURONHAND2")
+F.Data.DataTable.RemoveColumn("dtWO0","POSTONHAND")
+F.Data.DataTable.RemoveColumn("dtWO0","REQDQTY")
+'Add Columns
+F.Data.DataTable.AddColumn("dtWO0","SELECT",Boolean,False)
+F.Data.DataTable.AddColumn("dtWO0","RTRCOMPL",Boolean)
+F.Data.DataTable.AddColumn("dtWO0","BOMCOMPL",Boolean)
+F.Data.DataTable.AddColumn("dtWO0","DUEDATE",Date)
+
+'Set Due Date
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataTable.dtWO0.RowCount--,1)
+	V.Local.dDateDue.Set(V.DataTable.dtWO0(V.Local.iCnt).DATE_DUE!FieldVal)
+	F.Intrinsic.Math.Mult(V.DataTable.dtWO0(V.Local.iCnt).LEADTIME!FieldValFloat,-1,V.Local.fLeadTime)
+	F.Intrinsic.Date.DateAdd("D",V.Local.fLeadTime,V.Local.dDateDue,V.Local.dDatePurch)
+	F.Data.DataTable.SetValue("dtWO0",V.Local.iCnt,"DUEDATE",V.Local.dDatePurch)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+'Create a Key Column
+F.Data.DataTable.AddExpressionColumn("dtWO0","PartLoc",String,"[PART]+[LOCATION]")
+'Router Complete Flag
+F.Data.Dictionary.CreateFromSQL("dRtrCompl","con","Select Rtr_Num,Complete From V_Router_Supp_Hdr Where Complete = 1;")
+F.Data.Dictionary.SetDefaultReturn("dRtrCompl",False)
+F.Data.DataTable.FillFromDictionary("dtWO0","dRtrCompl","PartLoc","RTRCOMPL")
+F.Data.Dictionary.Close("dRtrCompl")
+'BOM Complete Flag
+F.Data.Dictionary.CreateFromSQL("dBomCompl","con","Select Parent,Cast(1 As Bit) As Bom_Compl From V_Bom_Mstr Where Sequence_Bom = '0000' And Bom_Complete = 'Y';")
+F.Data.Dictionary.SetDefaultReturn("dBomCompl",False)
+F.Data.DataTable.FillFromDictionary("dtWO0","dBomCompl","PartLoc","BOMCOMPL")
+F.Data.Dictionary.Close("dBomCompl")
+'Remove Key Column
+F.Data.DataTable.RemoveColumn("dtWO0","PartLoc")
+
+'Group Parts together
+F.Data.DataView.Create("dtWO0","dvGroup")
+F.Data.DataView.ToDataTableDistinct("dtWO0","dvGroup","dtWO","SELECT*!*PART*!*LOCATION*!*DESCRIPTION*!*PL*!*SORTCODE*!*ONHANDQTY*!*RTRCOMPL*!*BOMCOMPL*!*LEADTIME",True)
+F.Data.DataTable.AddColumn("dtWO","DUEDATE",Date)
+F.Data.DataTable.AddColumn("dtWO","RUNQTY",Float,0)
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.DataTable.dtWO.RowCount--,1)
+	F.Intrinsic.String.Replace(V.DataTable.dtWO(V.Local.iCnt).PART!FieldVal,"'","''",V.Local.sPart)
+	F.Intrinsic.String.Replace(V.DataTable.dtWO(V.Local.iCnt).LOCATION!FieldVal,"'","''",V.Local.sLoc)
+	F.Intrinsic.String.Build("Part = '{0}' And Location = '{1}'",V.Local.sPart,V.Local.sLoc,V.Local.sFilter)
+	F.Data.DataTable.Select("dtWO0",V.Local.sFilter,V.Local.sSelect)
+	F.Intrinsic.String.Split(V.Local.sSelect,"*!*",V.Local.sSelect)
+	F.Data.DataTable.Compute("dtWO0","SUM(RUNQTY)",V.Local.sFilter,V.Local.fRunQty)
+	F.Data.DataTable.SetValue("dtWO",V.Local.iCnt,"DUEDATE",V.DataTable.dtWO0(V.Local.sSelect(0).Long).DUEDATE!FieldVal,"RUNQTY",V.Local.fRunQty)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadWOs.End
+
+Program.Sub.ConvertToHoseByFoot.Start
+'take the dtWO and put it in terms of the Hose by Foot parts
+
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare(String)
+V.Local.sFilter.Declare(String)
+V.Local.iCounter.Declare(Long)
+V.Local.fLength.Declare(Long)
+V.Local.fQuantity.Declare(Long)
+V.Local.sLength.Declare(String)
+V.Local.sFilterNoLocation.Declare(String)
+V.Local.sPart.Declare(String)
+V.Local.sTemp.Declare(String)
+V.Local.iLength.Declare(Long)
+V.Local.iRight.Declare(String)
+
+'create part filter
+F.Data.DataTable.AddExpressionColumn("dtWO", "PARTLOC", "String", "Trim([PART]) + Trim([LOCATION])")
+F.Data.DataView.Create("dtWO", "dvFilter", 22)
+F.Data.DataView.ToString("dtWO", "dvFilter", "PARTLOC", "***NODELIMITER***", "','", V.Local.sFilter)
+
+F.Intrinsic.String.Split(V.Local.sFilter, "','", V.Local.sFilter)
+F.Intrinsic.String.RemoveArrayDuplicates(V.Local.sFilter, V.Local.sFilter)
+F.Intrinsic.String.Join(V.Local.sFilter, "','", V.Local.sFilter)
+V.Local.sFilter.RedimPreserve(0, 0)
+
+'get hose by foot parts stored in User field 1
+F.Intrinsic.String.Build("select RTRIM(PART) + RTRIM(LOCATION) PARTLOC, RTRIM(TEXT_INFO1) as ROUTER, SUBSTRING(PART, 6, 3) as LENGTH_FROM_NAME, If(LENGTH = 0, LENGTH_RAW_MATL, LENGTH) as LENGTH from V_INVENTORY_ALL where PARTLOC in ('{0}')", V.Local.sFilter, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtHoseByFootInfo", "con", V.Local.sSQL)
+
+'fill router
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtHoseByFootInfo", "PARTLOC", "ROUTER")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.AddColumn("dtWO", "ROUTER", "String", "")
+F.Data.DataTable.FillFromDictionary("dtWO", "dictTemp", "PARTLOC", "ROUTER")
+F.Data.Dictionary.Close("dictTemp")
+
+'fill length
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtHoseByFootInfo", "PARTLOC", "LENGTH")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.AddColumn("dtWO", "LENGTH", "Long", 0)
+F.Data.DataTable.FillFromDictionary("dtWO", "dictTemp", "PARTLOC", "LENGTH")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.DataTable.Close("dtHoseByFootInfo")
+
+'multiply out quantity
+F.Data.DataTable.AddExpressionColumn("dtWO", "TOTAL_HOSE_NEEDED", "Float", "[RUNQTY] * [LENGTH]")
+F.Data.DataTable.AddExpressionColumn("dtWO", "TOTAL_HOSE_ON_HAND", "Float", "[ONHANDQTY] * [LENGTH]")
+
+F.Intrinsic.Control.If(V.DataTable.dtHoseByFoot.Exists)
+	F.Data.DataTable.Close("dtHoseByFoot")
+F.Intrinsic.Control.EndIf
+
+F.Data.DataTable.Create("dtHoseByFootTemp")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "SELECT", "Boolean", False)
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "PART", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "LOCATION", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "DESCRIPTION", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "PL", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "SORTCODE", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "ONHANDQTY", "Float", 0)
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "ROUTER_EXISTS", "Boolean", False)
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "RTRCOMPL", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "RUNQTY", "Float", 0)
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "BOMCOMPL", "String", "")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "LEADTIME", "Float", 0)
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "DUEDATE", "Date", "1900-01-01")
+F.Data.DataTable.AddColumn("dtHoseByFootTemp", "SUPPLY", "Float", 0)
+
+'group by router / hose by foot part
+F.Data.DataView.SetFilter("dtWO", "dvFilter", "ROUTER <> ''")
+F.Data.DataView.SetSort("dtWO", "dvFilter", "DUEDATE")
+F.Data.DataView.ToDataTableDistinct("dtWO", "dvFilter", "dtRouters", "ROUTER*!*LOCATION")
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.DataTable.dtRouters.RowCount--, 1)
+	F.Intrinsic.String.Build("[ROUTER] = '{0}' and LOCATION = '{1}'", V.DataTable.dtRouters(V.Local.iCounter).ROUTER!FieldValTrim,  V.DataTable.dtRouters(V.Local.iCounter).LOCATION!FieldValTrim, V.Local.sFilter)
+	F.Data.DataView.SetFilter("dtWO", "dvFilter", V.Local.sFilter)
+	
+	'neither of these conditions should ever not be met, but...
+	F.Intrinsic.Control.If(V.DataView.dtWO!dvFilter.RowCount, >, 0)
+		F.Data.DataTable.Compute("dtWO", "SUM(TOTAL_HOSE_NEEDED)", V.Local.sFilter, V.Local.fLength)
+		F.Data.DataTable.Compute("dtWO", "SUM(TOTAL_HOSE_ON_HAND)", V.Local.sFilter, V.Local.fQuantity)
+		F.Data.DataTable.AddRow("dtHoseByFootTemp", "PART", V.DataTable.dtRouters(V.Local.iCounter).ROUTER!FieldValTrim, "LOCATION", V.DataTable.dtRouters(V.Local.iCounter).LOCATION!FieldValTrim, "ONHANDQTY", V.Local.fQuantity, "RUNQTY", V.Local.fLength, "DUEDATE", V.DataView.dtWO!dvFilter(0).DUEDATE!FieldVal)
+	F.Intrinsic.Control.EndIf
+	
+F.Intrinsic.Control.Next(V.Local.iCounter)
+F.Data.DataTable.Close("dtRouters")
+
+'create new hose by foot filter
+F.Data.DataTable.AddExpressionColumn("dtHoseByFootTemp", "PARTLOC", "String", "Trim([PART]) + Trim([LOCATION])")
+F.Data.DataView.Create("dtHoseByFootTemp", "dvHoseByFoot", 22)
+F.Data.DataView.ToString("dtHoseByFootTemp", "dvHoseByFoot", "PARTLOC", "***NODELIMITER***", "','", V.Local.sFilter)
+F.Data.DataView.ToString("dtHoseByFootTemp", "dvHoseByFoot", "PART", "***NODELIMITER***", "','", V.Local.sFilterNoLocation)
+F.Data.DataView.Close("dtHoseByFootTemp", "dvHoseByFoot")
+
+'fill info
+F.Intrinsic.String.Build("select RTRIM(PART) + RTRIM(LOCATION) PARTLOC, RTRIM(DESCRIPTION) DESCRIPTION, RTRIM(PRODUCT_LINE) PL, RTRIM(CODE_SORT) SORTCODE, TIME_MATERIAL_LEAD, QTY_ONORDER_WO from V_INVENTORY_ALL where PARTLOC in ('{0}')", V.Local.sFilter, V.Local.sSQL)
+
+F.Data.DataTable.CreateFromSQL("dtRouterInfo", "Con", V.Local.sSQL)
+
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtRouterInfo", "PARTLOC", "DESCRIPTION")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dictTemp", "PARTLOC", "DESCRIPTION")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtRouterInfo", "PARTLOC", "PL")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dictTemp", "PARTLOC", "PL")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtRouterInfo", "PARTLOC", "SORTCODE")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", "")
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dictTemp", "PARTLOC", "SORTCODE")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtRouterInfo", "PARTLOC", "TIME_MATERIAL_LEAD")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dictTemp", "PARTLOC", "LEADTIME")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.Dictionary.CreateFromDataTable("dictTemp", "dtRouterInfo", "PARTLOC", "QTY_ONORDER_WO")
+F.Data.Dictionary.SetDefaultReturn("dictTemp", 0)
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dictTemp", "PARTLOC", "SUPPLY")
+F.Data.Dictionary.Close("dictTemp")
+
+F.Data.DataTable.Close("dtRouterInfo")
+
+'Router Complete Flag
+F.Intrinsic.String.Build("Select Rtr_Num,Complete From V_Router_Supp_Hdr Where Complete = 1 and RTR_NUM in ('{0}')", V.Local.sFilterNoLocation, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dRtrCompl", "con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dRtrCompl",False)
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp","dRtrCompl","PART","RTRCOMPL")
+F.Data.Dictionary.Close("dRtrCompl")
+
+F.Data.Dictionary.CreateFromSQL("dictRouter", "Con", "select RTRIM(ROUTER), Cast(1 as Bit) from V_ROUTER_HEADER")
+F.Data.Dictionary.SetDefaultReturn("dictRouter", False)
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dictRouter", "PART", "ROUTER_EXISTS")
+F.Data.Dictionary.Close("dictRouter")
+
+'BOM Complete Flag
+F.Intrinsic.String.Build("Select Parent,Cast(1 As Bit) As Bom_Compl From V_Bom_Mstr Where Sequence_Bom = '0000' And Bom_Complete = 'Y' and PARENT in ('{0}')", V.Local.sFilterNoLocation, V.Local.sSQL)
+F.Data.Dictionary.CreateFromSQL("dBomCompl", "con", V.Local.sSQL)
+F.Data.Dictionary.SetDefaultReturn("dBomCompl", False)
+F.Data.DataTable.FillFromDictionary("dtHoseByFootTemp", "dBomCompl", "PART", "BOMCOMPL")
+F.Data.Dictionary.Close("dBomCompl")
+
+F.Data.DataView.Close("dtWO", "dvFilter")
+
+F.Data.DataView.Create("dtHoseByFootTemp", "dvHoseByFootTemp", 22, "[RUNQTY] > 0", "")
+F.Data.DataView.ToDataTable("dtHoseByFootTemp", "dvHoseByFootTemp", "dtHoseByFootTempFinal")
+F.Data.DataView.Close("dtHoseByFootTemp", "dvHoseByFootTemp")
+F.Data.DataTable.Close("dtHoseByFootTemp")
+
+F.Data.DataTable.RemoveColumn("dtHoseByFootTempFinal", "PARTLOC")
+F.Intrinsic.Control.If(V.DataTable.dtHoseByFoot.Exists, =, False)
+	F.Data.DataTable.Create("dtHoseByFoot", True)
+F.Intrinsic.Control.EndIf
+F.Data.DataTable.Merge("dtHoseByFootTempFinal", "dtHoseByFoot", False, 1)
+F.Data.DataTable.Close("dtHoseByFootTempFinal")
+
+F.Data.DataTable.RemoveColumn("dtHoseByFoot", "SUPPLY")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.ConvertToHoseByFoot.End
+
+Program.Sub.LoadGVWO.Start
+F.Intrinsic.Control.Try
+
+V.Local.iCnt.Declare
+V.Local.sColumns.Declare
+V.Local.sColor.Declare
+V.Local.sKey.Declare
+
+'Set and Format Grid
+Gui.frmWO.GsGCWO.AddGridviewFromDatatable("gvWO", "dtHoseByFoot")
+Gui.frmWO.GsGCWO.Icon(V.Global.sGsGCIcon)
+Gui.frmWO.GsGCWO.SuspendLayout()
+Gui.frmWO.GsGCWO.SetGridViewProperty("gvWO","MultiSelect",True)
+Gui.frmWO.GsGCWO.SetGridViewProperty("gvWO","AllowSort",False)
+Gui.frmWO.GsGCWO.SetGridViewProperty("gvWO","AllowFilter",True)
+Gui.frmWO.GsGCWO.SetGridViewProperty("gvWO","OptionsDetailShowDetailTabs",False)
+Gui.frmWO.GsGCWO.SetGridViewProperty("gvWO","OptionsViewShowGroupPanel",True)
+Gui.frmWO.GsGCWO.SetGridViewProperty("gvWO","EnableAppearanceOddRow",True)
+
+'Loop through columns names by using the V.DataTable.dtName.FieldNames
+F.Intrinsic.String.Split(V.DataTable.dtHoseByFoot.FieldNames,"*!*",V.Local.sColumns)
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.Local.sColumns.UBound,1)
+	Gui.frmWO.GsGCWO.SetColumnProperty("gvWO",V.Local.sColumns(V.Local.iCnt),"HeaderFontBold",True)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+'SELECT
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","VisibleIndex","0")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","Caption","Select")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","MinWidth","65")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","AllowEdit",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","ReadOnly",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SELECT","CellHAlignment","Center")
+
+'PART
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","VisibleIndex","1")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","Caption","Part")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","MinWidth","115")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","HeaderHAlignment","Left")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","CellHAlignment","Left")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PART","CellForeColor","Blue")
+Gui.frmWO.GsGCWO.AddSummaryItem("gvWO","PART","PART","Count","","",n0)
+
+'LOCATION
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","VisibleIndex","2")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","Caption","Loc")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","MinWidth","45")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","CellHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LOCATION","CellForeColor","Blue")
+
+'DESCRIPTION
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","VisibleIndex","3")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","Caption","Description")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","MinWidth","145")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","HeaderHAlignment","Left")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","CellHAlignment","Left")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DESCRIPTION","CellForeColor","Blue")
+
+'PL
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","VisibleIndex","4")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","Caption","PL")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","MinWidth","45")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","PL","CellHAlignment","Center")
+
+'Router exists
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","VisibleIndex","7")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","Caption","Rtr Exists")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","MinWidth","65")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ROUTER_EXISTS","CellHAlignment","Center")
+
+'SORTCODE
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","VisibleIndex","5")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","Caption","Sort Code")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","MinWidth","85")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","SORTCODE","CellHAlignment","Center")
+
+'ONHANDQTY
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","VisibleIndex","6")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","Caption","Qty On Hand")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","MinWidth","85")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","HeaderHAlignment","Far")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","CellHAlignment","Far")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","ONHANDQTY","DisplayCustomNumeric","n2")
+
+'RTRCOMPL
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","VisibleIndex","8")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","Caption","Rtr Compl")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","MinWidth","65")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RTRCOMPL","CellHAlignment","Center")
+
+'BOMCOMPL
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","VisibleIndex","9")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","Caption","BOM Compl")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","MinWidth","65")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","BOMCOMPL","CellHAlignment","Center")
+
+'LEADTIME
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","VisibleIndex","10")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","Caption","Lead Time")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","MinWidth","75")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","AllowEdit",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","ReadOnly",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","LEADTIME","CellHAlignment","Center")
+
+'DUEDATE
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","VisibleIndex","11")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","Caption","Due Date")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","MinWidth","85")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","AllowEdit",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","ReadOnly",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","CellHAlignment","Center")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","CellBackColor","LightYellow")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","DUEDATE","DisplayCustomDateTime","d")
+
+'RUNQTY
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","VisibleIndex","12")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","Caption","Run Qty")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","MinWidth","85")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","AllowEdit",True)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","ReadOnly",False)
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","HeaderHAlignment","Far")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","CellHAlignment","Far")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","CellBackColor","LightYellow")
+Gui.frmWO.GsGCWO.SetColumnProperty("gvWO","RUNQTY","DisplayCustomNumeric","n2")
+
+'GUI.frmWO.GsGCWO.AddStyleFormatCondition("gvWO", "ROUTER_EXISTS", "Router", "Equal", "False")
+'GUI.frmWO.GsGCWO.SetStyleFormatConditionProperty("gvWO", "ROUTER_EXISTS", "Router", "BackColor", "Pink")
+
+Gui.frmWO.GsGCWO.ResumeLayout()
+Gui.frmWO.GsGCWO.MainView("gvWO")
+
+Gui.frmWO.lblStatus.Visible(False)
+Gui.frmWO.progBarStatus.Visible(False)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadGVWO.End
+
+Program.Sub.GsGCWO_RowCellClick.Start
+F.Intrinsic.Control.Try
+
+V.Local.sPart.Declare
+V.Local.sLoc.Declare
+V.Local.sParams.Declare
+V.Local.sCaption.Declare
+
+F.Intrinsic.Control.BlockEvents
+V.Local.sPart.Set(V.DataTable.dtHoseByFoot(V.Args.RowIndex).PART!FieldValTrim)
+V.Local.sLoc.Set(V.DataTable.dtHoseByFoot(V.Args.RowIndex).LOCATION!FieldValTrim)
+
+F.Intrinsic.Control.SelectCase(V.Args.Column)
+	F.Intrinsic.Control.CaseAny("PART","Part","LOCATION","Location")
+		'Fill Demand and Supply
+		F.Intrinsic.Control.If(V.Local.sLoc,=,"")
+			F.Intrinsic.String.Build("Demand || Part: {0}",V.Local.sPart,V.Local.sCaption)
+		F.Intrinsic.Control.Else
+			F.Intrinsic.String.Build("Demand || Part: {0} || Loc: {1}",V.Local.sPart,V.Local.sLoc,V.Local.sCaption)
+		F.Intrinsic.Control.EndIf
+		Gui.frmWO.lblDemand.Caption(V.Local.sCaption)
+		F.Intrinsic.Control.CallSub(LoadDemand,"Part",V.Local.sPart,"Loc",V.Local.sLoc)
+		F.Intrinsic.Control.CallSub(LoadSupply,"Part",V.Local.sPart,"Loc",V.Local.sLoc)
+	
+	F.Intrinsic.Control.CaseAny("Description","DESCRIPTION")
+		F.Intrinsic.String.Build("{0}!*!{1}!*!MR",V.Local.sPart,V.Local.sLoc,V.Local.sParams)
+		F.Global.General.CallWrapperASync(7200,V.Local.sParams)
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.GsGCWO_RowCellClick.End
+
+Program.Sub.LoadDemand.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare
+V.Local.sPart.Declare
+V.Local.sLoc.Declare
+V.Local.sColumns.Declare
+V.Local.iCnt.Declare
+V.Local.sFilter.Declare(String)
+
+F.Intrinsic.Control.If(V.DataTable.dtDemand.Exists)
+	F.Data.DataTable.Close("dtDemand")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Replace(V.Args.Part,"'","''",V.Local.sPart)
+F.Intrinsic.String.Replace(V.Args.Loc,"'","''",V.Local.sLoc)
+
+'modifying this to pull in all parts for that router
+F.Intrinsic.String.Build("select RTRIM(PART) + RTRIM(LOCATION) as PARTLOC from V_INVENTORY_MST2 where TEXT_INFO1 = '{0}'", V.Local.sPart, V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtParts", "Con", V.Local.sSQL)
+F.Data.DataView.Create("dtParts", "dvParts", 22)
+F.Data.DataView.ToString("dtParts", "dvParts", "PARTLOC", "***NODELIMITER***", "','", V.Local.sFilter)
+F.Data.DataView.Close("dtParts", "dvParts")
+F.Data.DataTable.Close("dtParts")
+
+F.Intrinsic.String.Build("SELECT 'Work Order' AS SOURCE, JOB+'-'+SUFFIX AS RECORD, DATE_DUE, QTY_COMMITTED-QTY_ISSUED As QTY_REM, RTRIM(PART) PART, RTRIM(LOCATION) LOCATION FROM V_JOB_COMMITMENTS WHERE RTRIM(PART) + RTRIM(LOCATION) in ('{0}') UNION SELECT 'Sales Order' AS SOURCE, ORDER_NO+'-'+LEFT(RECORD_NO,3) AS RECORD, DATE_ITEM_PROM AS DATE_DUE, QTY_BO AS QTY_REM, RTRIM(PART) PART, RTRIM(LOCATION) LOCATION FROM V_ORDER_LINES WHERE RTRIM(PART) + RTRIM(LOCATION) in ('{0}') ORDER BY DATE_DUE ASC;",V.Local.sFilter,V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtDemand","con",V.Local.sSQL,True)
+
+Gui.frmWO.GsGCDemand.AddGridViewFromDataTable("gvDemand","dtDemand")
+Gui.frmWO.GsGCDemand.ResumeLayout()
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","MultiSelect",True)
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","Editable",False)
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","ReadOnly",True)
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","AllowSort",True)
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","AllowFilter",True)
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","ShowGroupPanel",True)
+Gui.frmWO.GsGCDemand.SetGridViewProperty("gvDemand","OptionsSelectionEnableAppearanceFocusedRow",False)
+
+'Loop through columns names by using the V.DataTable.dtName.FieldNames
+F.Intrinsic.String.Split(V.DataTable.dtDemand.FieldNames,"*!*",V.Local.sColumns)
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.Local.sColumns.UBound,1)
+	Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand",V.Local.sColumns(V.Local.iCnt),"HeaderFontBold",True)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+'SOURCE
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","SOURCE","Caption","Source")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","SOURCE","MinWidth","65")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","SOURCE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","SOURCE","CellHAlignment","Center")
+
+'RECORD
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","RECORD","ShowCaption",False)
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","RECORD","Caption","Record")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","RECORD","MinWidth","65")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","RECORD","HeaderHAlignment","Center")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","RECORD","CellHAlignment","Center")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","RECORD","CellForeColor","Blue")
+
+'DATE_DUE
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","DATE_DUE","Caption","Due Date")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","DATE_DUE","MinWidth","85")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","DATE_DUE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","DATE_DUE","CellHAlignment","Center")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","DATE_DUE","DisplayCustomDatetime","d")
+
+'QTY_REM
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","QTY_REM","Caption","Rem Qty")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","QTY_REM","MinWidth","85")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","QTY_REM","HeaderHAlignment","Far")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","QTY_REM","CellHAlignment","Far")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","QTY_REM","DisplayCustomNumeric","n2")
+
+'PART
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","PART","Caption","Part")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","PART","MinWidth","85")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","PART","HeaderHAlignment","Far")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","PART","CellHAlignment","Far")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","PART","DisplayCustomNumeric","n2")
+
+'LOCATION
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","LOCATION","Caption","Loc")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","LOCATION","MinWidth","40")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","LOCATION","HeaderHAlignment","Far")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","LOCATION","CellHAlignment","Far")
+Gui.frmWO.GsGCDemand.SetColumnProperty("gvDemand","LOCATION","DisplayCustomNumeric","n2")
+
+Gui.frmWO.GsGCDemand.ResumeLayout()
+Gui.frmWO.GsGCDemand.MainView("gvDemand")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadDemand.End
+
+Program.Sub.LoadSupply.Start
+F.Intrinsic.Control.Try
+
+V.Local.sSQL.Declare
+V.Local.sPart.Declare
+V.Local.sLoc.Declare
+V.Local.sColumns.Declare
+V.Local.iCnt.Declare
+
+F.Intrinsic.Control.If(V.DataTable.dtSupply.Exists)
+	F.Data.DataTable.Close("dtSupply")
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.String.Replace(V.Args.Part,"'","''",V.Local.sPart)
+F.Intrinsic.String.Replace(V.Args.Loc,"'","''",V.Local.sLoc)
+
+F.Intrinsic.String.Build("SELECT 'Work Order' AS SOURCE, IF(SUFFIX = '',JOB,JOB+'-'+SUFFIX) AS RECORD, PROJECT, DATE_DUE, SCHEDULED_DUE_DATE, QTY_ORDER-QTY_COMPLETED AS QTY_REM FROM V_JOB_HEADER WHERE PART = '{0}' AND LOCATION = '{1}' AND DATE_CLOSED = '1900-01-01' ORDER BY DATE_DUE ASC;",V.Local.sPart,V.Local.sLoc,V.Local.sSQL)
+F.Data.DataTable.CreateFromSQL("dtSupply","con",V.Local.sSQL,True)
+
+Gui.frmWO.GsGCSupply.AddGridviewFromDatatable("gvSupply","dtSupply")
+Gui.frmWO.GsGCSupply.ResumeLayout()
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","MultiSelect",True)
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","Editable",False)
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","ReadOnly",True)
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","AllowSort",True)
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","AllowFilter",True)
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","ShowGroupPanel",True)
+Gui.frmWO.GsGCSupply.SetGridViewProperty("gvSupply","OptionsSelectionEnableAppearanceFocusedRow",False)
+
+'Loop through columns names by using the V.DataTable.dtName.FieldNames
+F.Intrinsic.String.Split(V.DataTable.dtSupply.FieldNames,"*!*",V.Local.sColumns)
+F.Intrinsic.Control.For(V.Local.iCnt,0,V.Local.sColumns.UBound,1)
+	Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply",V.Local.sColumns(V.Local.iCnt),"HeaderFontBold",True)
+F.Intrinsic.Control.Next(V.Local.iCnt)
+
+'SOURCE
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SOURCE","Caption","Source")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SOURCE","MinWidth","65")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SOURCE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SOURCE","CellHAlignment","Center")
+
+'RECORD
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","RECORD","ShowCaption",False)
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","RECORD","Caption","Record")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","RECORD","MinWidth","65")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","RECORD","HeaderHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","RECORD","CellHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","RECORD","CellForeColor","Blue")
+
+'PROJECT
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","PROJECT","Caption","Project")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","PROJECT","MinWidth","65")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","PROJECT","HeaderHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","PROJECT","CellHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","PROJECT","CellForeColor","Blue")
+
+'DATE_DUE
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","DATE_DUE","Caption","Due Date")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","DATE_DUE","MinWidth","85")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","DATE_DUE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","DATE_DUE","CellHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","DATE_DUE","DisplayCustomDatetime","d")
+
+'SCHEDULED_DUE_DATE
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SCHEDULED_DUE_DATE","Caption","Sched Due Date")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SCHEDULED_DUE_DATE","MinWidth","85")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SCHEDULED_DUE_DATE","HeaderHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SCHEDULED_DUE_DATE","CellHAlignment","Center")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","SCHEDULED_DUE_DATE","DisplayCustomDatetime","d")
+
+'QTY_REM
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","QTY_REM","Caption","Rem Qty")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","QTY_REM","MinWidth","85")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","QTY_REM","HeaderHAlignment","Far")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","QTY_REM","CellHAlignment","Far")
+Gui.frmWO.GsGCSupply.SetColumnProperty("gvSupply","QTY_REM","DisplayCustomNumeric","n2")
+
+Gui.frmWO.GsGCSupply.ResumeLayout()
+Gui.frmWO.GsGCSupply.MainView("gvSupply")
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.LoadSupply.End
+
+Program.Sub.Hyperlinks.Start
+F.Intrinsic.Control.Try
+
+V.Local.sRecord.Declare
+V.Local.sParams.Declare
+V.Local.sDT.Declare
+V.Local.sSuffix.Declare
+
+F.Intrinsic.Control.SelectCase(V.Args.ControlName)
+	F.Intrinsic.Control.Case("GSGCDEMAND")
+		V.Local.sDT.Set("dtDemand")
+		
+	F.Intrinsic.Control.Case("GSGCSUPPLY")
+		V.Local.sDT.Set("dtSupply")
+		
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.BlockEvents
+
+F.Intrinsic.Control.SelectCase(V.Args.Column)
+	F.Intrinsic.Control.CaseAny("Record","RECORD")
+		F.Intrinsic.Control.If(V.DataTable.[V.Local.sDT](V.Args.RowIndex).Source!FieldVal,=,"Work Order")
+			F.Intrinsic.String.Split(V.DataTable.[V.Local.sDT](V.Args.RowIndex).Record!FieldVal,"-",V.Local.sRecord)
+			F.Intrinsic.Control.If(V.Local.sRecord(1).Trim,=,"OOB")
+				V.Local.sSuffix.Set("")
+			F.Intrinsic.Control.Else
+				V.Local.sSuffix.Set(V.Local.sRecord(1).Trim)
+			F.Intrinsic.Control.EndIf
+			F.Intrinsic.String.ConcatCallWrapperArgs("7",V.Local.sRecord(0).Trim,V.Local.sSuffix,"A",V.Local.sParams)
+			F.Global.General.CallWrapperSync(450000,V.Local.sParams)
+			
+		F.Intrinsic.Control.ElseIf(V.DataTable.[V.Local.sDT](V.Args.RowIndex).Source!FieldVal,=,"Sales Order")
+			F.Intrinsic.String.Split(V.DataTable.[V.Local.sDT](V.Args.RowIndex).Record!FieldVal,"-",V.Local.sRecord)
+			F.Intrinsic.String.ConcatCallWrapperArgs(V.Local.sRecord(0).Trim,"V","*!*ZDR*!*",V.Local.sParams)
+			F.Global.General.CallWrapperAsync(200000,V.Local.sParams)
+		
+		F.Intrinsic.Control.ElseIf(V.DataTable.[V.Local.sDT](V.Args.RowIndex).Source!FieldVal,=,"Purchase Order")
+			'Nothing
+		F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndSelect
+
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.Hyperlinks.End
+
+Program.Sub.cmdRefresh_Click.Start
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.BlockEvents
+GUI.frmWO.progBarStatus.Value(0)
+F.Intrinsic.Control.CallSub(InvCheck)
+F.Intrinsic.Control.CallSub(LoadMRP)
+F.Intrinsic.Control.CallSub(LoadWOs)
+F.Intrinsic.Control.CallSub(ConvertToHoseByFoot)
+F.Intrinsic.Control.CallSub(LoadGVWO)
+F.Intrinsic.Control.UnBlockEvents
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(ErrorMessage, "ErrorNumber", V.Ambient.ErrorNumber, "ErrorDescription", V.Ambient.ErrorDescription, "Subroutine", V.Ambient.CurrentSubroutine, "Callback", "frmWO_Unload")
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdRefresh_Click.End
+
+Program.Sub.ErrorMessage.Start
+'basic error message for replacing catch block
+'this is really just for when printing the message and ending program
+'pass error number, error description, current subroutine
+'optional callback sub, this will be called before ending
+'optional unattended parameters, those subs may not exist if not using them but won't be called
+F.Intrinsic.Control.Try
+
+V.Local.iError.Declare(Long)
+V.Local.sErrorDescription.Declare(String)
+V.Local.sSubroutine.Declare(String)
+V.Local.sError.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.sCallback.Declare(String)
+V.Static.bError.Declare(Boolean, False)
+
+V.Local.iError.Set(V.Args.ErrorNumber)
+V.Local.sErrorDescription.Set(V.Args.ErrorDescription)
+V.Local.sSubroutine.Set(V.Args.Subroutine)
+
+'make sure we aren't in an error loop
+F.Intrinsic.Control.If(V.Static.bError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndIf
+V.Static.bError.Set(True)
+
+F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}", V.Caller.ScriptFile, V.Ambient.Newline, V.Local.sSubroutine, V.Local.iError, V.Local.sErrorDescription, V.Ambient.GABVersion, V.Local.sError)
+
+F.Intrinsic.Variable.ArgExists("UNATTENDED", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	F.Intrinsic.Control.If(V.Args.UNATTENDED)
+		F.Intrinsic.Control.CallSub(UnattendedErrorMessage, "MESSAGE", V.Local.sError, "PROJECT", V.Args.PROJECT, "PROJECTTITLE", V.Args.PROJECTTITLE, "TASK", V.Args.Task)
+	F.Intrinsic.Control.Else
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.Else
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Variable.ArgExists("Callback", V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists)
+	V.Local.sCallback.Set(V.Args.Callback.Trim)
+	F.Intrinsic.Control.CallSub(V.Local.sCallback)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.String.Build("Project: {0}{1}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}{1}{1}GAB Version: {5}",V.Caller.ScriptFile,V.Ambient.Newline,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Ambient.GABVersion,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	F.Intrinsic.Control.End
+F.Intrinsic.Control.EndTry
+Program.Sub.ErrorMessage.End
